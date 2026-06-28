@@ -1,17 +1,18 @@
 import mujoco
 import mujoco.viewer
 import time
+import math
 
-# 1. Define a 3D world with a fixed column, a hinge arm, and an electronic motor
+# 1. Define a 3D world with a fixed post, a mechanical hinge joint, and a motor
 robot_xml = """
 <mujoco>
-    <option gravity="0 0 -9.81"/> <!-- Standard Earth Gravity -->
+    <option gravity="0 0 -9.81"/> 
     
     <worldbody>
         <light directional="true" diffuse=".8 .8 .8" specular=".2 .2 .2" pos="0 0 5" dir="0 0 -1"/>
         <geom type="plane" size="5 5 0.1" rgba=".9 .9 .9 1"/>
         
-        <!-- Fixed Base Gray Pillar -->
+        <!-- Fixed Gray Column Base -->
         <body name="base" pos="0 0 2">
             <geom type="cylinder" size="0.1 1" rgba="0.5 0.5 0.5 1"/>
             
@@ -23,29 +24,28 @@ robot_xml = """
         </body>
     </worldbody>
 
-    <!-- MOTOR ACTUATOR LAYER: Adds an electronic motor to our hinge joint -->
+    <!-- MOTOR ACTUATOR LAYER: Connects an automated motor to the hinge joint -->
     <actuator>
         <motor joint="hinge_joint" ctrlrange="-10 10" ctrllimited="true"/>
     </actuator>
 </mujoco>
 """
 
-# 2. Compile the robotic actuator layout into CPU memory
 model = mujoco.MjModel.from_xml_string(robot_xml)
 data = mujoco.MjData(model)
 
-print("🤖 Launching Controlled MuJoCo Actuator Window... Close screen layout to exit.")
+print("🤖 Launching Sine-Wave Automated MuJoCo Actuator Window... Close screen layout to exit.")
 
 # 3. Launch the official native passive viewer engine
 with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running():
         step_start = time.time()
         
-        # 4. CONTROL STEP: Inject 3.5 Newton-meters of continuous torque into the motor
-        # data.ctrl[0] targets the first actuator defined in your XML script
-        data.ctrl[0] = 3.5
+        # 4. SINE WAVE AUTOMATION STEP: Generate smooth oscillating forces over time
+        # Math wave outputs fluctuating numbers smoothly between -5.0 and +5.0 Newton-meters
+        data.ctrl = 5.0 * math.sin(time.time() * 3.0)
         
-        mujoco.mj_step(model, data) # Run core physics formulas with active motor forces
+        mujoco.mj_step(model, data) # Process physics equations with dynamic motor torque
         viewer.sync()               # Refresh graphical interface layer
         
         # Maintain physical execution rate limit synchronization (500 FPS)

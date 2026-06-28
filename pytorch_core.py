@@ -1,47 +1,68 @@
+import os
+import cv2
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from ultralytics import YOLO
 
-print("⚙️ Booting Optimized PyTorch Training Loop...")
+print("🧠 Initializing Stabilized YOLO-to-PyTorch Training Engine...")
 
-
+# Fix the random seed so numbers remain reproducible
 torch.manual_seed(42)
 
-# 1. Inputs (Sensor Data) and the Perfect Target
-robot_sensors = torch.tensor([[2.5, 1.2, 1.2]], dtype=torch.float32)
-perfect_steering = torch.tensor([[0.5, 0.0]], dtype=torch.float32)
+# 1. Load the model
+vision_model = YOLO("yolov8n.pt")
 
-
+# 2. FIXED ARCHITECTURE: Use LeakyReLU to prevent the dying neural block trap
 model = nn.Sequential(
-    nn.Linear(in_features=3, out_features=2),
-    nn.ReLU()
+    nn.Linear(in_features=4, out_features=1),
+    nn.LeakyReLU(negative_slope=0.1) 
 )
 
+perfect_brake_target = torch.tensor([[1.0]], dtype=torch.float32)
 
+# FIXED CONFIGURATION: Use Adam optimizer with an adjusted learning rate for safe learning curves
 criterion = nn.MSELoss()
-optimizer = optim.SGD(model.parameters(), lr=0.01)
+optimizer = optim.Adam(model.parameters(), lr=0.01)
 
-# --- BEFORE TRAINING ---
-initial_guess = model(robot_sensors)
-print(f"\n❌ Initial Untrained Guess: {initial_guess.detach().numpy()}")
+image_path = "images.jpg"
+if not os.path.exists(image_path):
+    print("❌ Error: 'images.jpg' missing!")
+    exit()
 
-print("\n🏋️ Training over 100 epochs...")
-# 4. Run the training loop over 100 steps
-for epoch in range(1, 101):
-    optimizer.zero_grad()                                # Clear old calculations
-    guess = model(robot_sensors)                         # Generate prediction
-    mistake = criterion(guess, perfect_steering)         # Calculate error distance
-    mistake.backward()                                   # Trace back propagation directions
-    optimizer.step()                                     # Update neural weights precisely
-    
-    # Print progress snapshot every 20 steps
-    if epoch % 20 == 0:
-        print(f"   🔹 Epoch {epoch:3d} | Current Mistake (Loss): {mistake.item():.6f} | Guess: {guess.detach().numpy()}")
+frame = cv2.imread(image_path)
+vision_results = vision_model(frame, verbose=False)
 
-# --- AFTER TRAINING ---
-final_guess = model(robot_sensors)
-print(f"\n🎯 Final Trained Guess: {final_guess.detach().numpy()}")
-print("✅ Success! The model optimized smoothly without collapsing your matrix layer values.")
-
-
-
+for result in vision_results:
+    for box in result.boxes:
+        if int(box.cls) == 0:
+            coords = box.xyxy[0].tolist() 
+            print(f"🚶 Pedestrian Locked! Box Coordinates: {coords}")
+            
+            # LINKING FIX: Normalize pixel values by dividing by 1000.0 to prevent exploding math steps
+            normalized_coords = [c / 1000.0 for c in coords]
+            input_tensor = torch.tensor([normalized_coords], dtype=torch.float32)
+            print(f"📥 Normalized Input Tensor: {input_tensor}")
+            
+            # --- BEFORE TRAINING ---
+            initial_guess = model(input_tensor)
+            print(f"\n❌ Initial Guess: {initial_guess.item():.4f}")
+            
+            # 6. THE STABILIZED TRAINING LOOP
+            print("\n🏋️ Training over 50 epochs...")
+            for epoch in range(1, 51):
+                optimizer.zero_grad()                               
+                current_guess = model(input_tensor)                 
+                mistake = criterion(current_guess, perfect_brake_target) 
+                mistake.backward()                                  
+                optimizer.step()                                    
+                
+                if epoch % 10 == 0:
+                    print(f"   🔹 Epoch {epoch:2d} | Loss: {mistake.item():.6f} | Current Braking Output: {current_guess.item():.4f}")
+            
+            # --- AFTER TRAINING ---
+            final_guess = model(input_tensor)
+            print(f"\n🎯 Final Trained Braking Guess: {final_guess.item():.4f}")
+            print(f"   (Target Safe Output was: {perfect_brake_target.item():.4f})")
+            print("\n✅ Success! The math stabilized cleanly.")
+            break
