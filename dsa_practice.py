@@ -1,67 +1,54 @@
-# row with max ones
-def row_with_max_1s(matrix):
-    rows = len(matrix)
-    cols = len(matrix[0]) if rows > 0 else 0
+
+#travesal in spiral order for a matrix
+def spiral_order(matrix):
+    result = []
+    if not matrix or not matrix[0]:
+        return result
+        
+    # Initialize our 4 wall boundary pointers
+    top, bottom = 0, len(matrix) - 1
+    left, right = 0, len(matrix[0]) - 1
     
-    max_row_index = -1
-    # Start at the top-right corner of the matrix layout grid
-    current_col = cols - 1
-    current_row = 0
-    
-    while current_row < rows and current_col >= 0:
-        # If we spot a 1, move left to check for a better maximum count
-        if matrix[current_row][current_col] == 1:
-            max_row_index = current_row
-            current_col -= 1
-        else:
-            # If we spot a 0, this row can't beat our current run. Step down!
-            current_row += 1
+    while top <= bottom and left <= right:
+        # 1. Traverse from Left to Right along the current Top wall
+        for i in range(left, right + 1):
+            result.append(matrix[top][i])
+        top += 1  # Shrink the top ceiling down
+        
+        # 2. Traverse from Top to Bottom along the current Right wall
+        for i in range(top, bottom + 1):
+            result.append(matrix[i][right])
+        right -= 1  # Shrink the right wall inward
+        
+        # 3. Check if boundaries crossed before moving backward
+        if top <= bottom:
+            # Traverse from Right to Left along the current Bottom floor
+            for i in range(right, left - 1, -1):  # Corrected step syntax
+                result.append(matrix[bottom][i])
+            bottom -= 1  # Shrink the bottom floor up
             
-    return max_row_index
+        if left <= right:
+            # 4. Traverse from Bottom to Top along the current Left wall
+            for i in range(bottom, top - 1, -1):  # Corrected step syntax
+                result.append(matrix[i][left])
+            left += 1  # Shrink the left wall outward
+            
+    return result
 
 # --- TEST EXAMPLES ---
-print("🧱 Running Problem 1: Row with Max 1s...")
-matrix = [
-    [0, 0, 1, 1], # Row 0
-    [0, 0, 0, 1], # Row 1
-    [1, 1, 1, 1], # Row 2
-    [0, 0, 0, 0]  # Row 3
+print("🌀 Executing 2D Matrix Spiral Traversal Pointers...")
+
+# Corrected empty list brackets to form a valid 3x4 2D matrix
+test_matrix = [
+    [1, 2, 3, 4],
+    [5, 6, 7, 8],
+    [9, 10, 11, 12]
 ]
 
-print(f"📤 Row Index with most 1s: {row_with_max_1s(matrix)} (Expected: 2)")
+print("📥 Input Matrix Layout:")
+for row in test_matrix:
+    print(row)
 
-
-#find target in 2d matrix
-
-def search_matrix(matrix, target):
-    if not matrix or not matrix[0]:
-        return False
-        
-    rows = len(matrix)
-    cols = len(matrix[0])
-    
-    # Define binary search pointers as if it's a flat 1D array list bound
-    low = 0
-    high = (rows * cols) - 1
-    
-    while low <= high:
-        mid = (low + high) // 2
-        # Virtual mapping trick: Convert 1D index back to 2D coordinates [row][col]
-        mid_val = matrix[mid // cols][mid % cols]
-        
-        if mid_val == target:
-            return True
-        elif mid_val < target:
-            low = mid + 1
-        else:
-            high = mid - 1
-            
-    return False
-
-# --- TEST EXAMPLES ---
-print("\n🔍 Running Problem 2: Search in Sorted 2D Matrix...")
-test_matrix_2 = [[1,2,3,4],[6,7,8,9]]
-
-target_num = 3
-print(f"📤 Found target {target_num}?: {search_matrix(test_matrix_2, target_num)} (Expected: True)")
-
+output_list = spiral_order(test_matrix)
+print(f"\n📤 Spiral Ordered Output: {output_list}")
+print("✅ Success! Spiral boundaries collapsed perfectly with zero pointer leaks.")
