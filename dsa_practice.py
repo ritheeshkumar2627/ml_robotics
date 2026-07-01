@@ -1,54 +1,35 @@
-
-#travesal in spiral order for a matrix
-def spiral_order(matrix):
-    result = []
-    if not matrix or not matrix[0]:
-        return result
-        
-    # Initialize our 4 wall boundary pointers
-    top, bottom = 0, len(matrix) - 1
-    left, right = 0, len(matrix[0]) - 1
+def sort_matrix(matrix):
+    rows = len(matrix)
+    cols = len(matrix[0]) if rows > 0 else 0
+    temp_list = []
     
-    while top <= bottom and left <= right:
-        # 1. Traverse from Left to Right along the current Top wall
-        for i in range(left, right + 1):
-            result.append(matrix[top][i])
-        top += 1  # Shrink the top ceiling down
-        
-        # 2. Traverse from Top to Bottom along the current Right wall
-        for i in range(top, bottom + 1):
-            result.append(matrix[i][right])
-        right -= 1  # Shrink the right wall inward
-        
-        # 3. Check if boundaries crossed before moving backward
-        if top <= bottom:
-            # Traverse from Right to Left along the current Bottom floor
-            for i in range(right, left - 1, -1):  # Corrected step syntax
-                result.append(matrix[bottom][i])
-            bottom -= 1  # Shrink the bottom floor up
+    # 1. FLATTEN STEP: Copy all elements from the 2D grid into a flat 1D array list
+    for i in range(rows):
+        for j in range(cols):
+            temp_list.append(matrix[i][j])
             
-        if left <= right:
-            # 4. Traverse from Bottom to Top along the current Left wall
-            for i in range(bottom, top - 1, -1):  # Corrected step syntax
-                result.append(matrix[i][left])
-            left += 1  # Shrink the left wall outward
-            
-    return result
+    # 2. SORT STEP: Run an optimized quicksort algorithm on the flat array
+    temp_list.sort()
+    
+    # 3. MAPPING STEP: Place the sorted elements back into the 2D matrix structure
+    index = 0
+    for i in range(rows):
+        for j in range(cols):
+            matrix[i][j] = temp_list[index]
+            index += 1
 
 # --- TEST EXAMPLES ---
-print("🌀 Executing 2D Matrix Spiral Traversal Pointers...")
+print("🔲 Executing 2D Matrix Flatten-and-Sort Logic...")
 
-# Corrected empty list brackets to form a valid 3x4 2D matrix
-test_matrix = [
-    [1, 2, 3, 4],
-    [5, 6, 7, 8],
-    [9, 10, 11, 12]
-]
-
-print("📥 Input Matrix Layout:")
+test_matrix = [[1,9,20,6,3],[10,12,13,8,7]]
+print("📥 Input Unsorted Matrix Layout:")
 for row in test_matrix:
     print(row)
 
-output_list = spiral_order(test_matrix)
-print(f"\n📤 Spiral Ordered Output: {output_list}")
-print("✅ Success! Spiral boundaries collapsed perfectly with zero pointer leaks.")
+# Run the matrix sort processing in-place
+sort_matrix(test_matrix)
+
+print("\n📤 Transformed Sorted Output Matrix Layout:")
+for row in test_matrix:
+    print(row)
+print("✅ Success! 2D matrix layers sorted and mapped sequentially with zero index leakage.")

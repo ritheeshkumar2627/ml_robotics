@@ -1,85 +1,44 @@
 import os
-import cv2
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import random
-from ultralytics import YOLO
+import matplotlib.pyplot as plt
 
-print("📈 Initializing YOLO-to-PyTorch Metric Logging Engine...")
+print("📊 Initializing AI Performance Visualisation Engine...")
 
-# Fix seed for reproducibility where applicable
-torch.manual_seed(42)
-
-# 1. Load your standard CPU-optimized YOLOv8 model architecture
-vision_model = YOLO("yolov8n.pt")
-
-# 2. Define the brain network architecture
-model = nn.Sequential(
-    nn.Linear(in_features=4, out_features=1),
-    nn.LeakyReLU(negative_slope=0.1)
-)
-
-perfect_brake_target = torch.tensor([[1.0]], dtype=torch.float32)
-optimizer = optim.Adam(model.parameters(), lr=0.01)
-criterion = nn.MSELoss()
-
-# 3. Data Augmentation Function 
-def augment_coordinates(coords):
-    # Add a random shift between -10 and +10 pixels to simulate pedestrian movement
-    augmented = [
-        coords[0] + random.uniform(-10, 10), # Shift X1
-        coords[1] + random.uniform(-10, 10), # Shift Y1
-        coords[2] + random.uniform(-10, 10), # Shift X2
-        coords[3] + random.uniform(-10, 10)  # Shift Y2
-    ]
-    return [c / 1000.0 for c in augmented]
-
-image_path = "images.jpg"
-if not os.path.exists(image_path):
-    print(f"❌ Error: '{image_path}' missing!")
-    exit()
-
-frame = cv2.imread(image_path)
-vision_results = vision_model(frame, verbose=False)
-
-base_coords = None
-for result in vision_results:
-    for box in result.boxes:
-        if int(box.cls) == 0:  # Lock onto first pedestrian
-            # FIXED: Added [0] to extract the 1D list from the nested 2D list structure
-            base_coords = box.xyxy.tolist()[0] 
-            break
-
-if base_coords is None:
-    print("❌ Error: No pedestrians detected.")
-    exit()
-
-print(f"🚶 Base Pedestrian Coordinates Locked: {base_coords}")
-
-# 4. PREPARE THE METRIC FILE: Open a fresh text log file to write training metrics
 log_filename = "loss_log.txt"
-with open(log_filename, "w") as log_file:
-    log_file.write("Epoch,Loss,Current_Braking_Output\n") # Write CSV file headers
 
-# 5. THE RUNNING TRAINING LOOP WITH SYSTEM LOGGING
-print("\n🏋️ Training over 50 epochs and exporting metrics...")
-for epoch in range(1, 51):
-    optimizer.zero_grad()
-    
-    dynamic_coords = augment_coordinates(base_coords)
-    input_tensor = torch.tensor([dynamic_coords], dtype=torch.float32)
-    
-    current_guess = model(input_tensor)
-    mistake = criterion(current_guess, perfect_brake_target)
-    mistake.backward()
-    optimizer.step()
-    
-    # 6. LOGGING STEP: Save metrics directly to the text log file
-    with open(log_filename, "a") as log_file:
-        log_file.write(f"{epoch},{mistake.item():.6f},{current_guess.item():.4f}\n")
-        
-    if epoch % 10 == 0:
-        print(f"   🔹 Epoch {epoch:2d} | Loss: {mistake.item():.6f} | Logged to file cleanly.")
+# 1. Error boundary check: Verify if the loss log exists in the folder
+if not os.path.exists(log_filename):
+    print(f"❌ Error: '{log_filename}' not found! Run your 'pytorch_core.py' script first to generate metrics.")
+    exit()
 
-print(f"\n💾 Success! Training run complete. Metrics compiled inside '{log_filename}'.")
+epochs = []
+losses = []
+
+# 2. Parse the text data log rows step-by-step
+with open(log_filename, "r") as log_file:
+    lines = log_file.readlines()
+    # Skip the first line layer because it contains the text column headers (Epoch, Loss...)
+    for line in lines[1:]:
+        if line.strip():
+            parts = line.split(",")
+            epochs.append(int(parts[0]))
+            losses.append(float(parts[1]))
+
+print(f"📥 Successfully extracted {len(epochs)} historical metrics data rows.")
+
+# 3. CONSTRUCT THE VISUAL PLOT: Layout lines, labels, and grid boundaries
+plt.figure(figsize=(10, 6))
+plt.plot(epochs, losses, label="Training Error (MSE Loss)", color="red", linewidth=2.5)
+
+# Add titles and labels so human recruiters can read it instantly
+plt.title("YOLO-to-PyTorch Brain Learning Convergence Curve", fontsize=14, fontweight="bold")
+plt.xlabel("Training Steps (Epochs)", fontsize=12)
+plt.ylabel("Error Margin (Mean Squared Error Loss)", fontsize=12)
+plt.grid(True, linestyle="--", alpha=0.6)
+plt.legend(fontsize=11)
+
+# 4. EXPORT THE GRAPH: Save the final plotted rendering layer as an image
+output_graph_name = "learning_curve.png"
+plt.savefig(output_graph_name, dpi=300)
+plt.close()
+
+print(f"🖼️ Success! Your learning graph has been drawn and saved as '{output_graph_name}'.")

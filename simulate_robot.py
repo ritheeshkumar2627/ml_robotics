@@ -1,8 +1,8 @@
 import mujoco
 import mujoco.viewer
 import time
+import math
 
-# 1. Define our 3D world with the torque limitation boundaries REMOVED
 robot_xml = """
 <mujoco>
     <option gravity="0 0 -9.81"/> 
@@ -18,8 +18,6 @@ robot_xml = """
             </body>
         </body>
     </worldbody>
-    
-    <!-- ACTUATOR LAYER FIX: CTRLLIMITED REMOVED so motor can draw enough torque to lift the mass -->
     <actuator>
         <motor joint="hinge_joint"/>
     </actuator>
@@ -29,43 +27,51 @@ robot_xml = """
 model = mujoco.MjModel.from_xml_string(robot_xml)
 data = mujoco.MjData(model)
 
-# TARGET: Absolute horizontal hold (90 degrees = 1.57 radians)
-target_angle = 1.57  
-
-# PID GAINS UPGRADE: Increased values to aggressively snap and lock the arm straight out
-Kp = 150.0  # Heavy muscle power
-Ki = 80.0   # Aggressive steady-state error correction
-Kd = 15.0   # Stronger shock absorber dampening to stop shaking
+# HIGH-PERFORMANCE PID TUNING
+Kp = 150.0  
+Ki = 100.0  # Increased slightly to aggressively squash the tracking sag
+Kd = 15.0   
 
 error_integral = 0.0
-last_time = time.time()
+# FIXED SCORING: Use MuJoCo's internal simulation clock tracker to initialize time
+last_sim_time = data.time 
 
-print("🚀 Launching Unlocked PID Controller... Watch it lift straight to 90 degrees!")
+print("🚀 Launching Precision Trajectory PID Controller... Watch it wave flawlessly!")
 
 with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running():
         step_start = time.time()
         
-        current_time = time.time()
-        dt = current_time - last_time
-        last_time = current_time
+        # TIME FIX: Calculate precise delta intervals using MuJoCo's internal clock buffer
+        current_sim_time = data.time
+        dt = current_sim_time - last_sim_time
+        last_sim_time = current_sim_time
         
-        # Read current physical state parameters
-        current_angle = data.qpos[0] if hasattr(data.qpos, '__len__') else data.qpos
-        current_velocity = data.qvel[0] if hasattr(data.qvel, '__len__') else data.qvel
+        # 1. DYNAMIC TARGET TRACKING REFERENCE
+        # Generates a smooth wavy trajectory over time centered at 90 degrees (1.57 rad)
+        target_angle = 1.57 + 0.8 * math.cos(current_sim_time * 2.0)
         
-        # Calculate tracking error distance values
+        # 2. READ HARDWARE STATE ARRAYS
+        current_angle = data.qpos if hasattr(data.qpos, '__len__') else data.qpos
+        current_velocity = data.qvel if hasattr(data.qvel, '__len__') else data.qvel
+        
+        # 3. CORE CALCULATIONS
         error = target_angle - current_angle
         
-        # Accumulate error memory step to pull out of the gravity sag
+        # Accumulate integral errors safely (dt is now guaranteed to match the physics steps!)
         if dt > 0:
             error_integral += error * dt
             
-        # Core PID Loop Architecture Form
+        # Complete PID Equation Formula
+                
         control_torque = (Kp * error) + (Ki * error_integral) - (Kd * current_velocity)
+        data.ctrl = control_torque
         
-        # Feed torque directly to unconstrained hardware layer arrays
-        data.ctrl[0] = control_torque
+        # 🔍 NEW PRINT TRACKER: Prints the target vs actual angle in degrees
+        # (Multiplying by 57.2958 converts raw radians into clean degrees)
+        if int(current_sim_time * 100) % 20 == 0: # Limits prints so it doesn't flood your screen
+            print(f"🎯 Target Angle: {target_angle * 57.2958:.1f}° | 🤖 Actual Angle: {current_angle[0] * 57.2958:.1f}° | ❌ Error: {error[0] * 57.2958:.1f}°")
+
         
         mujoco.mj_step(model, data)
         viewer.sync()               
