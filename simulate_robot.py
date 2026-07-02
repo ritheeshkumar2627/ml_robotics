@@ -2,6 +2,8 @@ import mujoco
 import mujoco.viewer
 import time
 import math
+import csv
+import os
 
 robot_xml = """
 <mujoco>
@@ -37,6 +39,12 @@ error_integral = 0.0
 last_sim_time = data.time 
 
 print("🚀 Launching Precision Trajectory PID Controller... Watch it wave flawlessly!")
+# Create/Overwrite a clean text file with CSV headers BEFORE the loop fires up
+filename = "robot_flight_log.csv"
+with open(filename, "w", encoding="utf-8") as file:
+    file.write("Time,Target_Angle,Actual_Angle\n")
+
+print(f"📄 Telemetry stream initialized cleanly inside '{filename}'!")
 
 with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running():
@@ -74,6 +82,17 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         
         mujoco.mj_step(model, data)
+
+        # TELEMETRY LOG STEP: Append the live sensor variables as text line entries
+        with open(filename, "a", encoding="utf-8") as file:
+            file.write(f"{current_sim_time:.4f},{target_angle:.4f},{current_angle[0]:.4f}\n")
+
+         
+
+
+
+    
+
         viewer.sync()               
         
         time_until_next_step = model.opt.timestep - (time.time() - step_start)

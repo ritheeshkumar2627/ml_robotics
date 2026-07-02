@@ -1,44 +1,39 @@
+import cv2
 import os
-import matplotlib.pyplot as plt
+from ultralytics import YOLO
 
-print("📊 Initializing AI Performance Visualisation Engine...")
+print("yolo multi-class object detector in installed")
 
-log_filename = "loss_log.txt"
+vision_model= YOLO("yolov8n.pt")
 
-# 1. Error boundary check: Verify if the loss log exists in the folder
-if not os.path.exists(log_filename):
-    print(f"❌ Error: '{log_filename}' not found! Run your 'pytorch_core.py' script first to generate metrics.")
+image_path="images.jpg"
+if not os.path.exists(image_path):
+    print(" image name images.jpg  not found")
     exit()
 
-epochs = []
-losses = []
+frame=cv2.imread(image_path)
+print("image is loaded into memory")
 
-# 2. Parse the text data log rows step-by-step
-with open(log_filename, "r") as log_file:
-    lines = log_file.readlines()
-    # Skip the first line layer because it contains the text column headers (Epoch, Loss...)
-    for line in lines[1:]:
-        if line.strip():
-            parts = line.split(",")
-            epochs.append(int(parts[0]))
-            losses.append(float(parts[1]))
+vision_result=vision_model(frame,verbose=False)
+for result in vision_result:
+    for box in result.boxes:
+        if int(box.cls) == 0:  # Lock onto first pedestrian
+            base_coords = box.xyxy[0].tolist()
+            break
 
-print(f"📥 Successfully extracted {len(epochs)} historical metrics data rows.")
+if base_coords is None:
+    print("❌ Error: No pedestrians detected.")
+    exit()
 
-# 3. CONSTRUCT THE VISUAL PLOT: Layout lines, labels, and grid boundaries
-plt.figure(figsize=(10, 6))
-plt.plot(epochs, losses, label="Training Error (MSE Loss)", color="red", linewidth=2.5)
+# 6. FILE WRITING DATA GENERATOR STEP
+output_filename = "dataset_inputs.txt"
+with open(output_filename, "a") as f:
+    # Convert our list of numbers into a clean comma-separated text line string
+    coord_string = ",".join([str(c) for c in base_coords])
+    f.write(coord_string + "\n")
 
-# Add titles and labels so human recruiters can read it instantly
-plt.title("YOLO-to-PyTorch Brain Learning Convergence Curve", fontsize=14, fontweight="bold")
-plt.xlabel("Training Steps (Epochs)", fontsize=12)
-plt.ylabel("Error Margin (Mean Squared Error Loss)", fontsize=12)
-plt.grid(True, linestyle="--", alpha=0.6)
-plt.legend(fontsize=11)
+print(f"💾 Success! Pedestrian coordinates saved cleanly into '{output_filename}'.")
 
-# 4. EXPORT THE GRAPH: Save the final plotted rendering layer as an image
-output_graph_name = "learning_curve.png"
-plt.savefig(output_graph_name, dpi=300)
-plt.close()
 
-print(f"🖼️ Success! Your learning graph has been drawn and saved as '{output_graph_name}'.")
+
+
