@@ -1,20 +1,21 @@
-def reverse_transpose(mat):
-    n=len(mat)
-    if n== len(mat[0]):
-        for i in range(n):
-            for j in range(i+1,n):
-                mat[i][j],mat[j][i]=mat[j][i],mat[i][j]
-
-         
+def print_boundary(mat):
+    r = len(mat)
+    c = len(mat[0])
     
-                # Clean, unified row-reversal step (Works for both odd and even N)
-        for num in range(n // 2):
-            # Swap top rows with bottom rows simultaneously to prevent overwriting
-            mat[num], mat[n - 1 - num] = mat[n - 1 - num], mat[num]
+    # Safety check for single row or single column
+    if r == 1:
+        for i in range(c): print(mat[0][i])
+        return
+    if c == 1:
+        for i in range(r): print(mat[i][0])
+        return
 
-    return mat
-
-matrix=[[1,2,3],[4,5,6],[7,8,9]]
-
-print(reverse_transpose(matrix))
-
+    # Your exact, correct logic below:
+    for i in range(c-1):
+        print(mat[0][i])
+    for j in range(r-1):
+        print(mat[j][c-1])
+    for p in range(c-1,0,-1):
+        print(mat[r-1][p])
+    for q in range(r-1,0,-1):
+        print(mat[q][0])
