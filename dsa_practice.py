@@ -1,21 +1,15 @@
-def print_boundary(mat):
-    r = len(mat)
-    c = len(mat[0])
-    
-    # Safety check for single row or single column
-    if r == 1:
-        for i in range(c): print(mat[0][i])
-        return
-    if c == 1:
-        for i in range(r): print(mat[i][0])
-        return
+def stair_case_search(mat,target):
+    r=len(mat)
+    c=len(mat[0])
+    p=0
+    q=c-1
+    while p<r and c>=0:
+        if mat[p][q]==target:
+            return True
+        elif target<mat[p][q]:
+            q-=1
+        else :
+            p+=1
+test=[[1,2,3],[4,5,6],[7,8,9]]
 
-    # Your exact, correct logic below:
-    for i in range(c-1):
-        print(mat[0][i])
-    for j in range(r-1):
-        print(mat[j][c-1])
-    for p in range(c-1,0,-1):
-        print(mat[r-1][p])
-    for q in range(r-1,0,-1):
-        print(mat[q][0])
+print(stair_case_search(test,7))

@@ -32,6 +32,29 @@ for result in vision_result:
 
 print(f"💾 Success! object coordinates saved cleanly into '{filename}'.")
 
+# 🚨 RIGHT HERE IS WHERE YOU TYPE YOUR SUMMARY GENERATOR (OUTSIDE THE LOOPS)
+print("\n📊 Initializing Vision Metric Summary Generator...")
+
+class_counts = {}
+
+# Open and parse the log file rows
+with open(filename, "r", encoding="utf-8") as file:
+    lines = file.readlines()
+    for line in lines[1:]:
+        if line.strip():
+            parts = line.split(",")
+            detected_label = parts[0] # Grab the string name from the first column slot
+            class_counts[detected_label] = class_counts.get(detected_label, 0) + 1
+
+# Open a fresh file to write out your analytics report totals
+summary_filename = "vision_summary.txt"
+with open(summary_filename, "w", encoding="utf-8") as summary_file:
+    summary_file.write("=== OBJECT DETECTION SUMMARY REPORT ===\n")
+    for category_name, total_count in class_counts.items():
+        summary_file.write(f"Total {category_name} objects identified: {total_count}\n")
+
+print(f"📝 Success! Analytics summary report compiled inside '{summary_filename}'.")
+
 
 
 
