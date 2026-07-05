@@ -1,15 +1,10 @@
-def stair_case_search(mat,target):
-    r=len(mat)
-    c=len(mat[0])
-    p=0
-    q=c-1
-    while p<r and c>=0:
-        if mat[p][q]==target:
-            return True
-        elif target<mat[p][q]:
-            q-=1
-        else :
-            p+=1
-test=[[1,2,3],[4,5,6],[7,8,9]]
+def count_unique_paths(m, n):
+    dp = [[1] * n for _ in range(m)]
 
-print(stair_case_search(test,7))
+    for i in range(1,m):
+        for j in range(1,n):
+            dp[i][j]=dp[i-1][j]+dp[i][j-1]
+            
+    return dp[m-1][n-1]
+
+print(f"final cpath counts = {count_unique_paths(4,4)}")
