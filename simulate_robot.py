@@ -46,7 +46,27 @@ with open(filename, "w", encoding="utf-8") as file:
 
 print(f"📄 Telemetry stream initialized cleanly inside '{filename}'!")
 
-with mujoco.viewer.launch_passive(model, data) as viewer:
+def keyboard_callback(key):
+    global Kp
+    global Ki
+    global Kd
+
+    key_char=chr(key).upper() if key < 256 else ""
+
+    if key_char=="I":
+        Kp+=10
+        print(f"🔼 Key Pressed! Increasing Proportional Power -> Kp = {Kp}")
+    elif key_char=="D":
+        Kp=max(0,Kp-10)
+        print(f"🔽 Key Pressed! Decreasing Proportional Power -> Kp = {Kp}")
+
+    elif key_char=="F":
+        Kd+=10
+        print(f"increasing kd to {Kd}")
+    elif key_char=="S":
+        max(0,Kd)
+        print(f"kd is decreased to {Kd}")
+with mujoco.viewer.launch_passive(model, data, key_callback=keyboard_callback) as viewer:
     while viewer.is_running():
         step_start = time.time()
         

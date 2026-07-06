@@ -1,10 +1,14 @@
 import cv2
 import os
 from ultralytics import YOLO
+import time
 
 print("yolo multi-class object detector in installed")
 
+
+
 vision_model= YOLO("yolov8n.pt")
+
 
 image_path="images.jpg"
 if not os.path.exists(image_path):
@@ -13,11 +17,17 @@ if not os.path.exists(image_path):
 
 frame=cv2.imread(image_path)
 print("image is loaded into memory")
-
+start_time=time.perf_counter()
 vision_result=vision_model(frame,verbose=False)
+end_time=time.perf_counter()
+
+latency_ms = (end_time - start_time) * 1000
+print(f"⏱️ Inference Latency: {latency_ms:.2f} ms")
+
+
 filename="vision_profile.txt"
 with open(filename, "w", encoding="utf-8") as file:
-    file.write("Detected_Class,confidence_score,X1,Y1,X2,Y2\n")
+    file.write("Detected_Class,latency,confidence_score,X1,Y1,X2,Y2\n")
 for result in vision_result:
     for box in result.boxes:
         class_id=int(box.cls[0])
@@ -29,7 +39,7 @@ for result in vision_result:
         if confidence_score > 0.65:
             with open(filename, "a", encoding="utf-8") as f:
                 # Create a string line starting with the class name, followed by the confidence and 4 coordinates
-                coord_string = f"{class_name},{confidence_score:.2f},{coords[0]:.1f},{coords[1]:.1f},{coords[2]:.1f},{coords[3]:.1f}"
+                coord_string = f"{class_name},{latency_ms:.1f},{confidence_score:.2f},{coords[0]:.1f},{coords[1]:.1f},{coords[2]:.1f},{coords[3]:.1f}"
                 f.write(coord_string + "\n")
 
 
