@@ -61,10 +61,10 @@ def keyboard_callback(key):
         print(f"🔽 Key Pressed! Decreasing Proportional Power -> Kp = {Kp}")
 
     elif key_char=="F":
-        Kd+=10
+        Kd+=0.5
         print(f"increasing kd to {Kd}")
     elif key_char=="S":
-        max(0,Kd)
+        max(0,Kd-0.5)
         print(f"kd is decreased to {Kd}")
 with mujoco.viewer.launch_passive(model, data, key_callback=keyboard_callback) as viewer:
     while viewer.is_running():
