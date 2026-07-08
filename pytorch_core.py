@@ -27,7 +27,7 @@ print(f"⏱️ Inference Latency: {latency_ms:.2f} ms")
 
 filename="vision_profile.txt"
 with open(filename, "w", encoding="utf-8") as file:
-    file.write("Detected_Class,latency,confidence_score,Aspect-ratio,X1,Y1,X2,Y2\n")
+    file.write("Detected_Class,latency,confidence_score,Aspect-ratio,gain-profile,X1,Y1,X2,Y2\n")
 for result in vision_result:
     for box in result.boxes:
         class_id=int(box.cls[0])
@@ -35,14 +35,23 @@ for result in vision_result:
         coords = box.xyxy[0].tolist()
         width=coords[0]-coords[2]
         height=coords[1]-coords[3]
-        aspect_ratio=width/height if height > 0 else 0.0
+        aspect_ratio=width/height if height != 0 else 0.0
+    
+        # If aspect ratio is thin (< 0.8), it's a pedestrian. If wide (>= 0.8), it's a vehicle.
+        if aspect_ratio < 0.8:
+            command_profile = "SMOOTH"
+        else:
+            command_profile = "HIGH_SPEED"
+
+        
+
         confidence_score = float(box.conf[0])
 
         # 🛠️ FIXED STEP: Added the active data cleaning fence condition
         if confidence_score > 0.65:
             with open(filename, "a", encoding="utf-8") as f:
                 # Create a string line starting with the class name, followed by the confidence and 4 coordinates
-                coord_string = f"{class_name},{latency_ms:.1f},{confidence_score:.2f},{aspect_ratio:.2f},{coords[0]:.1f},{coords[1]:.1f},{coords[2]:.1f},{coords[3]:.1f}"
+                coord_string = f"{class_name},{latency_ms:.1f},{confidence_score:.2f},{aspect_ratio:.2f},{command_profile},{coords[0]:.1f},{coords[1]:.1f},{coords[2]:.1f},{coords[3]:.1f}"
                 f.write(coord_string + "\n")
 
 

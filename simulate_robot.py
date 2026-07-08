@@ -2,8 +2,6 @@ import mujoco
 import mujoco.viewer
 import time
 import math
-import csv
-import os
 
 robot_xml = """
 <mujoco>
@@ -11,7 +9,6 @@ robot_xml = """
     <worldbody>
         <light directional="true" diffuse=".8 .8 .8" specular=".2 .2 .2" pos="0 0 5" dir="0 0 -1"/>
         <geom type="plane" size="5 5 0.1" rgba=".9 .9 .9 1"/>
-        
         <body name="base" pos="0 0 2">
             <geom type="cylinder" size="0.1 1" rgba="0.5 0.5 0.5 1"/>
             <body name="arm" pos="0 0 0">
@@ -29,90 +26,46 @@ robot_xml = """
 model = mujoco.MjModel.from_xml_string(robot_xml)
 data = mujoco.MjData(model)
 
-# HIGH-PERFORMANCE PID TUNING
-Kp = 150.0  
-Ki = 100.0  # Increased slightly to aggressively squash the tracking sag
-Kd = 15.0   
+# INITIAL DIAGNOSTIC SETUP: Start Kp at absolute zero muscle strength
+Kp = 0.0  
+Ki = 50.0  
+Kd = 5.0   
 
 error_integral = 0.0
-# FIXED SCORING: Use MuJoCo's internal simulation clock tracker to initialize time
 last_sim_time = data.time 
 
-print("🚀 Launching Precision Trajectory PID Controller... Watch it wave flawlessly!")
-# Create/Overwrite a clean text file with CSV headers BEFORE the loop fires up
-filename = "robot_flight_log.csv"
-with open(filename, "w", encoding="utf-8") as file:
-    file.write("Time,Target_Angle,Actual_Angle\n")
+print("🚀 Launching Automated Diagnostic Gain Sweeper Loop...")
 
-print(f"📄 Telemetry stream initialized cleanly inside '{filename}'!")
-
-def keyboard_callback(key):
-    global Kp
-    global Ki
-    global Kd
-
-    key_char=chr(key).upper() if key < 256 else ""
-
-    if key_char=="I":
-        Kp+=10
-        print(f"🔼 Key Pressed! Increasing Proportional Power -> Kp = {Kp}")
-    elif key_char=="D":
-        Kp=max(0,Kp-10)
-        print(f"🔽 Key Pressed! Decreasing Proportional Power -> Kp = {Kp}")
-
-    elif key_char=="F":
-        Kd+=0.5
-        print(f"increasing kd to {Kd}")
-    elif key_char=="S":
-        max(0,Kd-0.5)
-        print(f"kd is decreased to {Kd}")
-with mujoco.viewer.launch_passive(model, data, key_callback=keyboard_callback) as viewer:
+# Notice: key_callback parameter is completely removed here!
+with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running():
         step_start = time.time()
         
-        # TIME FIX: Calculate precise delta intervals using MuJoCo's internal clock buffer
         current_sim_time = data.time
         dt = current_sim_time - last_sim_time
         last_sim_time = current_sim_time
         
-        # 1. DYNAMIC TARGET TRACKING REFERENCE
-        # Generates a smooth wavy trajectory over time centered at 90 degrees (1.57 rad)
+        # 1. AUTOMATED RAMP STEP: Automatically add 0.1 muscle power on every pass up to 200
+        Kp = min(200.0, Kp + 0.1)
+        
         target_angle = 1.57 + 0.8 * math.cos(current_sim_time * 2.0)
         
-        # 2. READ HARDWARE STATE ARRAYS
-        current_angle = data.qpos if hasattr(data.qpos, '__len__') else data.qpos
-        current_velocity = data.qvel if hasattr(data.qvel, '__len__') else data.qvel
+        current_angle = data.qpos[0] if hasattr(data.qpos, '__len__') else data.qpos
+        current_velocity = data.qvel[0] if hasattr(data.qvel, '__len__') else data.qvel
         
-        # 3. CORE CALCULATIONS
         error = target_angle - current_angle
-        
-        # Accumulate integral errors safely (dt is now guaranteed to match the physics steps!)
         if dt > 0:
             error_integral += error * dt
             
-        # Complete PID Equation Formula
-                
+        # Core PID Loop pulling the smoothly sweeping Kp parameter
         control_torque = (Kp * error) + (Ki * error_integral) - (Kd * current_velocity)
         data.ctrl = control_torque
         
-        # 🔍 NEW PRINT TRACKER: Prints the target vs actual angle in degrees
-        # (Multiplying by 57.2958 converts raw radians into clean degrees)
-        if int(current_sim_time * 100) % 20 == 0: # Limits prints so it doesn't flood your screen
-            print(f"🎯 Target Angle: {target_angle * 57.2958:.1f}° | 🤖 Actual Angle: {current_angle[0] * 57.2958:.1f}° | ❌ Error: {error[0] * 57.2958:.1f}°")
-
-        
+        # LIVE DIAGNOSTIC MONITOR
+        if int(current_sim_time * 100) % 20 == 0:
+            print(f"📈 Sweeping Gains -> Kp: {Kp:.1f} | 🤖 Actual Angle: {current_angle * 57.3:.1f}°")
+            
         mujoco.mj_step(model, data)
-
-        # TELEMETRY LOG STEP: Append the live sensor variables as text line entries
-        with open(filename, "a", encoding="utf-8") as file:
-            file.write(f"{current_sim_time:.4f},{target_angle:.4f},{current_angle[0]:.4f}\n")
-
-         
-
-
-
-    
-
         viewer.sync()               
         
         time_until_next_step = model.opt.timestep - (time.time() - step_start)

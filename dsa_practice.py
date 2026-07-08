@@ -1,20 +1,21 @@
-def max_sub_square_ones(mat):
-    m=len(mat)
-    n=len(mat[0])
-    dp = [[0] * n for _ in range(m)]
-    max_side=0
-    for i in range(m):
-        for j in range(n):
-            if i==0 or j==0:
-                dp[i][j]=mat[i][j]
-            elif mat[i][j]==1:
-                dp[i][j] = 1 + min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1])
-            max_side = max(max_side, dp[i][j])
+def reverse(arr,start,end):
+    while start<end:
+        arr[start],arr[end]=arr[end],arr[start]
+        start+=1
+        end-=1
+def rotate_matrix_rows(mat,k):
+     n=len(mat) if len(mat)>0 else -1
+     m=len(mat[0])
+     k%=m
+     for i in range(n):
+         reverse(mat[i],0,m-1)
+         reverse(mat[i],0,k-1)
+         reverse(mat[i],k,m-1)
+         
+     return mat
 
 
-    return max_side
+test=[[1,2,3,4,5]]
 
+print(rotate_matrix_rows(test,7))
 
-test=[[0,1,1],[1,1,0],[1,1,1]]
-
-print(max_sub_square_ones(test))
