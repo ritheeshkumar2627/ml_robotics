@@ -2,6 +2,8 @@ import mujoco
 import mujoco.viewer
 import time
 import math
+import os
+import configparser
 
 robot_xml = """
 <mujoco>
@@ -26,17 +28,16 @@ robot_xml = """
 model = mujoco.MjModel.from_xml_string(robot_xml)
 data = mujoco.MjData(model)
 
-# INITIAL DIAGNOSTIC SETUP: Start Kp at absolute zero muscle strength
-Kp = 0.0  
+# INITIAL WORKBENCH SETUP: Give the robot solid operational baseline values
+Kp = 150.0  
 Ki = 50.0  
-Kd = 5.0   
+Kd = 15.0   # Normal smooth fluid dampening
 
 error_integral = 0.0
 last_sim_time = data.time 
 
-print("🚀 Launching Automated Diagnostic Gain Sweeper Loop...")
+print("🚀 Launching Reactive Control State Interceptor... Waiting for perception logs...")
 
-# Notice: key_callback parameter is completely removed here!
 with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running():
         step_start = time.time()
@@ -45,11 +46,30 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         dt = current_sim_time - last_sim_time
         last_sim_time = current_sim_time
         
-        # 1. AUTOMATED RAMP STEP: Automatically add 0.1 muscle power on every pass up to 200
-        Kp = min(200.0, Kp + 0.1)
+        # 1. READ PERCEPTION INTERPROCESS BRIDGE DATA
+        autopilot_status = "CLEAR" # Default safety baseline
         
-        target_angle = 1.57 + 0.8 * math.cos(current_sim_time * 2.0)
-        
+        if os.path.exists("autopilot_signal.cfg"):
+            try:
+                with open("autopilot_signal.cfg", "r", encoding="utf-8") as f:
+                    line = f.read().strip()
+                    if "=" in line:
+                        autopilot_status = line.split("=")[1]
+            except Exception:
+                pass # Prevent minor file read/write collision locks from crashing the loop
+
+        # 2. STATE MACHINE INTERCEPTOR GATES
+        if autopilot_status == "critical brake":
+            target_angle = 0.0  # Force arm to safe neutral bracing point instantly
+            Kd_active = 80.0    # Inject heavy hydraulic dampening brakes to freeze movement
+            current_state = "🚨 EMERGENCY OVERRIDE INTERCEPT"
+        else:
+            # Execute normal, smooth wavy trajectory reference tracking operations
+            target_angle = 1.57 + 0.8 * math.cos(current_sim_time * 2.0)
+            Kd_active = 15.0    # Return back to smooth fluid shock absorption dampening
+            current_state = "🟢 NORMAL AUTOPILOT TRACKING"
+
+        # 3. CORE COUPLING CALCULATIONS
         current_angle = data.qpos[0] if hasattr(data.qpos, '__len__') else data.qpos
         current_velocity = data.qvel[0] if hasattr(data.qvel, '__len__') else data.qvel
         
@@ -57,13 +77,13 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         if dt > 0:
             error_integral += error * dt
             
-        # Core PID Loop pulling the smoothly sweeping Kp parameter
-        control_torque = (Kp * error) + (Ki * error_integral) - (Kd * current_velocity)
+        # Run PID loop pulling the dynamic reactive brakes
+        control_torque = (Kp * error) + (Ki * error_integral) - (Kd_active * current_velocity)
         data.ctrl = control_torque
         
-        # LIVE DIAGNOSTIC MONITOR
+        # MONITOR PERFORMANCE CHANNELS LIVE
         if int(current_sim_time * 100) % 20 == 0:
-            print(f"📈 Sweeping Gains -> Kp: {Kp:.1f} | 🤖 Actual Angle: {current_angle * 57.3:.1f}°")
+            print(f"🚦 Mode: {current_state} | Target: {target_angle:.2f} | Kd: {Kd_active:.1f}")
             
         mujoco.mj_step(model, data)
         viewer.sync()               
